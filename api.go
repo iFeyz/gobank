@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
 	"github.com/gorilla/mux"
 )
 
 // Corrected WriteJSON function
 func WriteJSON(w http.ResponseWriter, status int, v interface{}) error {
 	w.WriteHeader(status)
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Add("Content-Type", "application/json")
 	return json.NewEncoder(w).Encode(v)
 }
 
@@ -34,13 +35,15 @@ func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
 
 // Define APIServer struct correctly
 type APIServer struct {
+	store      Storage
 	listenAddr string
 }
 
 // Corrected NewAPIServer function
-func NewAPIServer(listenAddr string) *APIServer {
+func NewAPIServer(listenAddr string, store Storage) *APIServer {
 	return &APIServer{
 		listenAddr: listenAddr,
+		store:      store,
 	}
 }
 
@@ -72,11 +75,22 @@ func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error 
 // Stub methods for account handling
 func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
-	return WriteJSON(w , htto.StatusOK, vars)
+	return WriteJSON(w, http.StatusOK, vars)
 }
 
 func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
-	return nil
+	createAccountReq := new(CreateAccountRequest)
+	if err := json.NewDecoder(r.Body).Decode(createAccountReq); err != nil {
+		return err
+	}
+
+	account := NewAccount(createAccountReq.FirstName, createAccountReq.LastName)
+	if err := s.store.CreateAccount(account); err != nil {
+		return err
+	}
+
+	return WriteJSON(w, http.StatusOK, account)
+
 }
 
 func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) error {
@@ -86,5 +100,3 @@ func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) 
 func (s *APIServer) handleTransfer(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
-
-
