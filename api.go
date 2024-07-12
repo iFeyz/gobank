@@ -52,7 +52,7 @@ func (s *APIServer) Run() {
 	router := mux.NewRouter()
 	router.HandleFunc("/account", makeHTTPHandleFunc(s.handleAccount))
 
-	router.HandleFunc("/account/{id}", makeHTTPHandleFunc(s.handleGetAccount))
+	router.HandleFunc("/account/{id}", makeHTTPHandleFunc(s.handleGetAccountById))
 
 	log.Println("JSON API server running on port:", s.listenAddr)
 	http.ListenAndServe(s.listenAddr, router)
@@ -62,7 +62,7 @@ func (s *APIServer) Run() {
 func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case "GET":
-		return s.handleGetAccount(w, r)
+		return s.handleGetAccountById(w, r)
 	case "POST":
 		return s.handleCreateAccount(w, r)
 	case "DELETE":
@@ -73,9 +73,18 @@ func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error 
 }
 
 // Stub methods for account handling
-func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
+func (s *APIServer) handleGetAccountById(w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	return WriteJSON(w, http.StatusOK, vars)
+}
+
+func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
+	accounts, err := s.store.GetAccounts()
+	if err != nil {
+		return err
+	}
+
+	return WriteJSON(w, http.StatusOK, accounts)
 }
 
 func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
