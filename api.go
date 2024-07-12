@@ -55,6 +55,8 @@ func (s *APIServer) Run() {
 
 	router.HandleFunc("/account/{id}", makeHTTPHandleFunc(s.handleGetAccountById))
 
+	router.HandleFunc("/transfer", makeHTTPHandleFunc(s.handleTransfer))
+
 	log.Println("JSON API server running on port:", s.listenAddr)
 	http.ListenAndServe(s.listenAddr, router)
 }
@@ -66,8 +68,6 @@ func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error 
 		return s.handleGetAccountById(w, r)
 	case "POST":
 		return s.handleCreateAccount(w, r)
-	case "DELETE":
-		return s.handleDeleteAccount(w, r)
 	default:
 		return fmt.Errorf("method not allowed %s", r.Method)
 	}
@@ -75,16 +75,22 @@ func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error 
 
 // Stub methods for account handling
 func (s *APIServer) handleGetAccountById(w http.ResponseWriter, r *http.Request) error {
-	id, err := getID(r)
-	if err != nil {
-		return err
-	}
-	account, err := s.store.GetAccountByID(id)
-	if err != nil {
-		return err
-	}
+	if r.Method == "GET" {
+		id, err := getID(r)
+		if err != nil {
+			return err
+		}
+		account, err := s.store.GetAccountByID(id)
+		if err != nil {
+			return err
+		}
 
-	return WriteJSON(w, http.StatusOK, account)
+		return WriteJSON(w, http.StatusOK, account)
+	}
+	if r.Method == "DELETE" {
+		return s.handleDeleteAccount(w, r)
+	}
+	return fmt.Errorf("method not allowed %s", r.Method)
 }
 
 func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
@@ -125,14 +131,20 @@ func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *APIServer) handleTransfer(w http.ResponseWriter, r *http.Request) error {
-	return nil
+	transferReq := new(TransferRequest)
+	if err := json.NewDecoder(r.Body).Decode(transferReq); err != nil {
+		return err
+	}
+	defer r.Body.Close()
+
+	return WriteJSON(w, http.StatusOK, transferReq)
 }
 
 func getID(r *http.Request) (int, error) {
 	idStr := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		return fmt.Errorf("invalid id given %s", idStr)
+		return id, fmt.Errorf("invalid id given %s", idStr)
 	}
 	return id, nil
 }
