@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
+	jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/mux"
 )
 
@@ -15,6 +16,18 @@ func WriteJSON(w http.ResponseWriter, status int, v interface{}) error {
 	w.WriteHeader(status)
 	w.Header().Add("Content-Type", "application/json")
 	return json.NewEncoder(w).Encode(v)
+}
+
+func withJWTAuth(handleFunc http.HandlerFunc) http.HandlerFunc {
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("calling JWT auth middleware")
+		handleFunc(w, r)
+	}
+}
+
+func validateJWT(tokenString string) (*jwt.Token, error) {
+
 }
 
 // Define apiFunc as a type
@@ -53,7 +66,7 @@ func (s *APIServer) Run() {
 	router := mux.NewRouter()
 	router.HandleFunc("/account", makeHTTPHandleFunc(s.handleAccount))
 
-	router.HandleFunc("/account/{id}", makeHTTPHandleFunc(s.handleGetAccountById))
+	router.HandleFunc("/account/{id}", withJWTAuth(makeHTTPHandleFunc(s.handleGetAccountById)))
 
 	router.HandleFunc("/transfer", makeHTTPHandleFunc(s.handleTransfer))
 
