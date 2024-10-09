@@ -9,7 +9,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// Corrected WriteJSON function
+// Corrected WriteJSON functio
 func WriteJSON(w http.ResponseWriter, status int, v interface{}) error {
 	w.WriteHeader(status)
 	w.Header().Add("Content-Type", "application/json")
